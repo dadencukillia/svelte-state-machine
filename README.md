@@ -22,7 +22,7 @@ npm i svelte-state-machine
 ```typescript
 <script lang="ts">
   // 1. Imports: Bring in the FSM class and the default linear router strategy.
-  import { FiniteStateMachine, LinearIncreaseStateRouter } from "$lib/finiteStateMachine.svelte";
+  import { FiniteStateMachine, LinearIncreaseStateRouter } from "svelte-state-machine";
 
   // 2. Reactive State: Declare a reactive Svelte state using the $state rune.
   // This variable will hold the data fetched from the API.
