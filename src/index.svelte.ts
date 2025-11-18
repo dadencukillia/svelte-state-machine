@@ -28,9 +28,9 @@ type stateChangeListener<T extends readonly string[]> = (fsm: FiniteStateMachine
  *  }
  * };
  *
- * console.log(FSM.state === FSM.enum.First); // Output: true
+ * console.log(FSM.check.First()); // Output: true
  * FSM.next(cyclicRouter);
- * console.log(FSM.state === FSM.enum.Second); // Output: true
+ * console.log(FSM.check.Second()); // Output: true
  * ```
  */
 export interface StatesRouter {
@@ -107,11 +107,12 @@ export const LinearDecreaseStateRouter: StatesRouter = {
 export class FiniteStateMachine<
   TStates extends readonly string[]
 > {
-  private _states: TStates; // Stores the array of state names passed during initialization.
-  private _enum: { [K in TStates[number]]: number }; // A mapping object (like an enum) where state names (strings) are mapped to their index (number).
-  private _currentState: number = $state(0); // The current state of the FSM, stored as a numerical index.
-  private _listenersIdAutoincrease = 0; // Autoincrementing counter used to assign unique IDs to state change listeners.
-  private _stateChangeListeners: Record<number, stateChangeListener<TStates>> = {}; // A record holding all subscribed state change listeners, keyed by their unique ID.
+  #states: TStates; // Stores the array of state names passed during initialization.
+  #enum: { [K in TStates[number]]: number }; // A mapping object (like an enum) where state names (strings) are mapped to their index (number).
+  #check: { [K in TStates[number]]: () => boolean }; // A check-like object mapping
+  #currentState: number = $state(0); // The current state of the FSM, stored as a numerical index.
+  #listenersIdAutoincrease = 0; // Autoincrementing counter used to assign unique IDs to state change listeners.
+  #stateChangeListeners: Record<number, stateChangeListener<TStates>> = {}; // A record holding all subscribed state change listeners, keyed by their unique ID.
 
 
   /* --------------- *
@@ -124,7 +125,7 @@ export class FiniteStateMachine<
     * @param {number} newState The state after the change.
     */
   private _notifyStateChangeListeners(previousState: number, newState: number) {
-    Object.values(this._stateChangeListeners).forEach((listener, _) => {
+    Object.values(this.#stateChangeListeners).forEach((listener, _) => {
       listener(this, previousState, newState);
     });
   }
@@ -140,13 +141,16 @@ export class FiniteStateMachine<
     */
   public constructor(...states: TStates) {
     if (states.length === 0) {
-      throw "FSMInitializationError: State array cannot be empty.";
+      throw new Error("FSMInitializationError: State array cannot be empty.");
     }
 
-    this._states = states;
-    this._enum = Object.fromEntries(
+    this.#states = states;
+    this.#enum = Object.fromEntries(
       states.map((s, i) => [s, i])
-    ) as any;
+    ) as { [K in TStates[number]]: number };
+    this.#check = Object.fromEntries(
+      states.map((s, i) => [s, () => this.#currentState === i])
+    ) as { [K in TStates[number]]: () => boolean };
   }
 
   /**
@@ -163,8 +167,8 @@ export class FiniteStateMachine<
     * ```
     */
   public subscribeStateChanges(listener: stateChangeListener<TStates>): number {
-    const id = this._listenersIdAutoincrease++;
-    this._stateChangeListeners[id] = listener;
+    const id = this.#listenersIdAutoincrease++;
+    this.#stateChangeListeners[id] = listener;
 
     return id;
   }
@@ -186,7 +190,7 @@ export class FiniteStateMachine<
     * ```
     */
   public unsubscribeStateChanges(id: number) {
-    delete this._stateChangeListeners[id];
+    delete this.#stateChangeListeners[id];
   }
 
   /**
@@ -197,22 +201,18 @@ export class FiniteStateMachine<
     * @throws InvalidStateError if the new state is not an integer.
     */
   public set state(newState: number) {
-    if (newState >= this._states.length) {
-      this.state = this._states.length - 1;
-      return;
+    if (!Number.isInteger(newState)) {
+      throw new Error("InvalidStateError: State must be an integer.");
     }
 
-    if (newState < 0) {
-      this.state = 0;
-      return;
+    if (newState >= this.#states.length) {
+      newState = this.#states.length - 1;
+    } else if (newState < 0) {
+      newState = 0;
     }
 
-    if (Math.round(newState) !== newState) {
-      throw new Error("InvalidStateError");
-    }
-
-    const previousState = this._currentState;
-    this._currentState = newState;
+    const previousState = this.#currentState;
+    this.#currentState = newState;
 
     if (previousState !== newState) {
       this._notifyStateChangeListeners(previousState, newState);
@@ -228,9 +228,11 @@ export class FiniteStateMachine<
     * ```ts
     * FSM.state === FSM.enum.MyState
     * ```
+    *
+    * But it's better to use FiniteStateMachine.check method 
     */
   public get state(): number {
-    return this._currentState;
+    return this.#currentState;
   }
 
   /**
@@ -238,15 +240,32 @@ export class FiniteStateMachine<
     * @param router The strategy object defining the transition rule (defaults to LinearIncreaseStateRouter).
     */
   public next(router: StatesRouter = LinearIncreaseStateRouter) {
-    this.state = router.stateFor(this._currentState);
+    this.state = router.stateFor(this.#currentState);
   }
 
   /**
     * Gets the enum-like object mapping state names to their indices.
+    *
     * @returns The enumeration of states.
     */
   public get enum(): { [K in TStates[number]]: number } {
-    return this._enum;
+    return this.#enum;
+  }
+
+  /**
+   * Gets the check-like object mapping state names to boolean check functions.
+   * @returns The check object.
+   *
+   * @example
+   * It's nice to be used for comparison
+   * ```ts
+   * FSM.check.MyState()
+   * // Is the same as:
+   * FSM.state === FSM.enum.MyState
+   * ```
+   */
+  public get check(): { [K in TStates[number]]: () => boolean } {
+    return this.#check;
   }
 
   /**
@@ -276,7 +295,7 @@ export class FiniteStateMachine<
     * ```
     */
   public match<T>(...handles: Array<[number|null, () => T]>): T|null {
-    const state = this._currentState;
+    const state = this.#currentState;
     let elseHandler: (() => T)|null = null;
 
     for (const handle of handles) {

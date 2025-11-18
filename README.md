@@ -19,7 +19,7 @@ npm i svelte-state-machine
 
 ## 🚀 Usage Example
 
-```typescript
+```svelte
 <script lang="ts">
   // 1. Imports: Bring in the FSM class and the default linear router strategy.
   import { FiniteStateMachine, LinearIncreaseStateRouter } from "svelte-state-machine";
@@ -38,7 +38,9 @@ npm i svelte-state-machine
   );
 
   // Initial check: The FSM starts at the first declared state (index 0).
-  console.log(FSM.state === FSM.enum.FetchingData); // Output: true
+  console.log(
+    FSM.check.FetchingData() // The same as `FSM.state === FSM.enum.FetchingData`
+  ); // Output: true
 
   // 4. State-Driven Async Logic: Start the API request.
   fetch("https://jsonplaceholder.typicode.com/todos/1")
@@ -80,3 +82,4 @@ npm i svelte-state-machine
   // Note: FSM.match automatically handles the current FSM.state, 
   // ensuring the UI always reflects the correct stage of the async operation.
 )}</h1>
+```
