@@ -1,6 +1,6 @@
 {
   "name": "svelte-state-machine",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Finite State Machine (FSM) for Svelte 5+ (Runes) with Strategy Pattern for Routing. Highly reactive, strongly typed, and includes an efficient state matching utility.",
   "scripts": {
     "build": "svelte-package --input ./src"
@@ -36,8 +36,8 @@
   },
   "homepage": "https://github.com/dadencukillia/svelte-state-machine#README",
   "peerDependencies": {
-		"svelte": "^5"
-	},
+    "svelte": "^5"
+  },
   "devDependencies": {
     "@sveltejs/package": "^2.5.4",
     "typescript": "^5.9.3"
