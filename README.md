@@ -4,6 +4,12 @@ This is a **strongly typed** and **highly reactive** implementation of a Finite 
 
 It leverages the **Strategy Pattern** via the `StatesRouter` interface to decouple transition logic from the core FSM class, improving maintainability and testability.
 
+## 📦 Installation
+This project is published on [npm](https://www.npmjs.com/package/svelte-state-machine), so you can use it with this command:
+```bash
+npm i svelte-state-machine
+```
+
 ## ✨ Key Features
 
 * **Svelte Reactivity:** Uses `$state` principles to ensure state changes automatically update Svelte components.
